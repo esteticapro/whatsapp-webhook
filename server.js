@@ -50,7 +50,7 @@ app.post("/webhook", async (req, res) => {
         };
 
         // Inserindo no Supabase
-        const { error } = await supabase.from("todos").insert([dataToSave]);
+        const { error } = await supabase.from("messages").insert([dataToSave]);
 
         if (error) {
           console.error("❌ Erro ao salvar no Supabase:", error);
