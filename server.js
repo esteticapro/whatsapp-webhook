@@ -15,6 +15,11 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 // Conexão com Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ✅ rota GET principal (para testar no navegador)
+app.get("/", (req, res) => {
+  res.send("🚀 API OK - Webhook ativo!");
+});
+
 // ✅ rota GET (verificação do Webhook no Meta)
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -31,6 +36,9 @@ app.get("/webhook", (req, res) => {
 
 // ✅ rota POST (mensagens recebidas)
 app.post("/webhook", async (req, res) => {
+  // 👇 LOG DE DEBUG
+  console.log("📦 Body recebido:", JSON.stringify(req.body, null, 2));
+
   try {
     const body = req.body;
 
@@ -50,8 +58,8 @@ app.post("/webhook", async (req, res) => {
           {
             from_number: from,
             message_text: text,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ]);
 
         if (error) {
