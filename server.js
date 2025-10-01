@@ -7,7 +7,7 @@ const app = express();
 app.use(bodyParser.json());
 
 // 🔑 variáveis do ambiente
-const VERIFY_TOKEN = "08182812"; // seu verify token fixo
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "my_verify_token";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -20,17 +20,15 @@ app.get("/webhook", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("✅ WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("✅ WEBHOOK_VERIFIED");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
   }
 });
 
-// ✅ rota POST (mensagens recebidas)
+// ✅ rota POST (mensagens recebidas do WhatsApp)
 app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
@@ -51,8 +49,8 @@ app.post("/webhook", async (req, res) => {
           {
             from_number: from,
             message_text: text,
-            timestamp: new Date().toISOString(),
-          },
+            timestamp: new Date().toISOString()
+          }
         ]);
 
         if (error) {
@@ -69,6 +67,27 @@ app.post("/webhook", async (req, res) => {
   } catch (err) {
     console.error("❌ Erro no webhook:", err);
     res.sendStatus(500);
+  }
+});
+
+// ✅ rota para listar mensagens salvas no Supabase
+app.get("/messages", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, from_number, message_text, timestamp")
+      .order("timestamp", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error("❌ Erro ao buscar mensagens:", error);
+      return res.status(500).json({ error: "Erro ao buscar mensagens" });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Erro na rota /messages:", err);
+    res.status(500).json({ error: "Erro no servidor" });
   }
 });
 
