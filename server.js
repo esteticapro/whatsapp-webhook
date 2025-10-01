@@ -1,14 +1,13 @@
 import express from "express";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
 import pkg from "@supabase/supabase-js";
 
 const { createClient } = pkg;
 const app = express();
 app.use(bodyParser.json());
 
-// 🔑 variáveis de ambiente
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "my_verify_token";
+// 🔑 variáveis do ambiente
+const VERIFY_TOKEN = "08182812"; // seu verify token fixo
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -21,22 +20,19 @@ app.get("/webhook", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  console.log("🌍 GET webhook chamado:", req.query);
-
-  if (mode && token === VERIFY_TOKEN) {
-    console.log("✅ WEBHOOK_VERIFIED");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
+  if (mode && token) {
+    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+      console.log("✅ WEBHOOK_VERIFIED");
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
   }
 });
 
 // ✅ rota POST (mensagens recebidas)
 app.post("/webhook", async (req, res) => {
   try {
-    console.log("📩 POST webhook chamado. Body completo:");
-    console.dir(req.body, { depth: null }); // loga o JSON inteiro
-
     const body = req.body;
 
     if (body.object) {
@@ -48,15 +44,15 @@ app.post("/webhook", async (req, res) => {
         const from = message.from; // número do remetente
         const text = message.text?.body; // conteúdo da mensagem
 
-        console.log("💬 Mensagem recebida:", from, text);
+        console.log("📩 Nova mensagem recebida:", from, text);
 
         // 🔽 salva no Supabase
         const { error } = await supabase.from("messages").insert([
           {
             from_number: from,
             message_text: text,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ]);
 
         if (error) {
@@ -68,7 +64,6 @@ app.post("/webhook", async (req, res) => {
 
       res.sendStatus(200);
     } else {
-      console.log("⚠️ Body sem objeto esperado.");
       res.sendStatus(404);
     }
   } catch (err) {
