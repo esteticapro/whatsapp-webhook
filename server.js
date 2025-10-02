@@ -6,10 +6,10 @@ const { createClient } = pkg;
 const app = express();
 app.use(bodyParser.json());
 
-// 🔑 variáveis fixas (coloquei as suas direto aqui)
+// 🔑 Dados fixos (seus)
 const VERIFY_TOKEN = "08182812";
-const SUPABASE_URL = "https://SEU-PROJETO.supabase.co"; // substitua pelo seu
-const SUPABASE_KEY = "SEU-ANON-PUBLIC"; // substitua pelo seu
+const SUPABASE_URL = "https://qgdbnyqtvbqjrmxwomqo.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZGJueXF0dmJxanJteHdvbXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgyNDgxMjYsImV4cCI6MjA1Mzg4ODEyNn0.m12jFe2ckZ3o2uTu53rYZXF-XhOiFztpaHJ4nGsaYr0";
 
 // Conexão com Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
