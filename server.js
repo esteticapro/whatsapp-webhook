@@ -10,8 +10,8 @@ app.use(bodyParser.json());
 
 // 🔑 Configurações
 const VERIFY_TOKEN = "08182812";
-const SUPABASE_URL = "https://suotacyfmgntpnuisczj.supabase.co";        // 🔽 coloque a URL aqui
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1b3RhY3lmbWdudHBudWlzY3pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4Mjg4NzAsImV4cCI6MjA3NDQwNDg3MH0.OmVh1lISpRshR8V1pw4V0T8qr6O7cBgcEu0m6W2L1wo";  // 🔽 coloque a anon key aqui
+const SUPABASE_URL = "https://narovlrntgnzoadoelst.supabase.co";        // 🔽 coloque a URL aqui
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hcm92bHJudGduem9hZG9lbHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzU5NTgsImV4cCI6MjA3NTAxMTk1OH0.hUNgxHdiFfIdisMDVA6bPfW_hHfMTgpSaJ81oMykGlI";  // 🔽 coloque a anon key aqui
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
