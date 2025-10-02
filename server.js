@@ -1,37 +1,34 @@
 import express from "express";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
 import pkg from "@supabase/supabase-js";
 
 const { createClient } = pkg;
-
-// 🔹 Configurações
 const app = express();
 app.use(bodyParser.json());
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+// 🔑 variáveis fixas (coloquei as suas direto aqui)
+const VERIFY_TOKEN = "08182812";
+const SUPABASE_URL = "https://SEU-PROJETO.supabase.co"; // substitua pelo seu
+const SUPABASE_KEY = "SEU-ANON-PUBLIC"; // substitua pelo seu
 
+// Conexão com Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ✅ Rota de verificação do Webhook
+// ✅ rota GET (verificação do Webhook no Meta)
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("✅ WEBHOOK_VERIFIED");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
   }
 });
 
-// ✅ Receber mensagens do WhatsApp
+// ✅ rota POST (mensagens recebidas)
 app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
@@ -42,20 +39,17 @@ app.post("/webhook", async (req, res) => {
       const message = changes?.value?.messages?.[0];
 
       if (message) {
-        const from_number = message.from; // número do usuário
-        const message_text = message.text?.body || "";
-        const timestamp = new Date().toISOString();
-        const wa_id = message.id;
+        const from = message.from; // número do remetente
+        const text = message.text?.body; // conteúdo da mensagem
 
-        console.log("📩 Nova mensagem recebida:", from_number, message_text);
+        console.log("📩 Nova mensagem recebida:", from, text);
 
-        // 🔹 Salvar na tabela messages
+        // 🔽 salva no Supabase
         const { error } = await supabase.from("messages").insert([
           {
-            from_number,
-            message_text,
-            timestamp,
-            wa_id
+            from_number: from,
+            message_text: text,
+            timestamp: new Date().toISOString()
           }
         ]);
 
@@ -65,15 +59,19 @@ app.post("/webhook", async (req, res) => {
           console.log("✅ Mensagem salva no Supabase!");
         }
       }
-    }
 
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("❌ Erro no webhook:", error);
+      res.sendStatus(200);
+    } else {
+      res.sendStatus(404);
+    }
+  } catch (err) {
+    console.error("❌ Erro no webhook:", err);
     res.sendStatus(500);
   }
 });
 
-// ✅ Iniciar servidor
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+// Inicializa servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+});
