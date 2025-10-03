@@ -21,11 +21,11 @@ app.post("/webhook", async (req, res) => {
   try {
     const entry = req.body.entry?.[0];
     const changes = entry?.changes?.[0];
-    const message = changes?.value?.messages?.[0];
+    const message = changes?.value?.leaads?.[0];
 
     if (message) {
-      const from = message.from; // número do usuário
-      const text = message.text?.body || "Mensagem sem texto";
+      const from = leads.from; // número do usuário
+      const text = leads.text?.body || "Mensagem sem texto";
 
       console.log("📩 Nova mensagem recebida:", from, text);
 
