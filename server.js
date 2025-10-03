@@ -1,62 +1,74 @@
 import express from "express";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
-import pkg from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
-const { createClient } = pkg;
+dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
 
-// 🔑 suas chaves Supabase
-const SUPABASE_URL = "https://narovlrntgnzoadoelst.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hcm92bHJudGduem9hZG9lbHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzU5NTgsImV4cCI6MjA3NTAxMTk1OH0.hUNgxHdiFfIdisMDVA6bPfW_hHfMTgpSaJ81oMykGlI";
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// 📩 Webhook
+// ✅ Rota para salvar lead + mensagem
 app.post("/webhook", async (req, res) => {
   try {
-    const entry = req.body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
-    const message = value?.messages?.[0]?.text?.body || null;
-    const sender = value?.messages?.[0]?.from || null;
+    const { phone, message } = req.body;
 
-    if (!message || !sender) {
-      console.log("Mensagem ou remetente não encontrados");
-      return res.sendStatus(200);
+    console.log("📩 Nova mensagem recebida:", phone, message);
+
+    // --- salvar LEAD ---
+    const { data: lead, error: leadError } = await supabase
+      .from("leads")
+      .insert([
+        {
+          user_id: null, // se tiver o user_id, você passa aqui
+          email: "desconhecido", // se conseguir extrair de algum lugar
+          status: "contato"
+        }
+      ])
+      .select()
+      .single();
+
+    if (leadError) {
+      console.error("❌ Erro ao salvar lead:", leadError);
+      return res.status(500).json({ error: leadError.message });
     }
 
-    console.log(`📩 Nova mensagem recebida: ${sender} ${message}`);
+    console.log("✅ Lead salvo:", lead);
 
-    // 👉 Salvar na tabela leads
-    const { error } = await supabase.from("leads").insert([
-      {
-        sender: sender,
-        message: message,
-        company: "sf",
-        status: "contato",
-        position: 0,
-        name: sender, // 👈 salvando número no campo name
-      },
-    ]);
+    // --- salvar MENSAGEM ---
+    const { data: msg, error: msgError } = await supabase
+      .from("messages")
+      .insert([
+        {
+          position: 0,
+          company: "sf",
+          message: message || "sem mensagem",
+          phone: phone || "desconhecido"
+        }
+      ])
+      .select()
+      .single();
 
-    if (error) {
-      console.error("❌ Erro ao salvar no Supabase:", error);
-    } else {
-      console.log("✅ Lead salvo com sucesso!");
+    if (msgError) {
+      console.error("❌ Erro ao salvar mensagem:", msgError);
+      return res.status(500).json({ error: msgError.message });
     }
 
-    res.sendStatus(200);
+    console.log("✅ Mensagem salva:", msg);
+
+    return res.status(200).json({ success: true, lead, msg });
   } catch (err) {
-    console.error("❌ Erro no webhook:", err);
-    res.sendStatus(500);
+    console.error("🔥 Erro no servidor:", err);
+    return res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
-// 🚀 Start
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Server rodando na porta ${PORT}`);
 });
