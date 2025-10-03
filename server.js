@@ -1,89 +1,58 @@
 import express from "express";
 import bodyParser from "body-parser";
-import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 
-dotenv.config();
-
 const app = express();
-app.use(bodyParser.json());
+const port = process.env.PORT || 3000;
 
-// 🔑 Conexão Supabase
+// Configurações do Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
-// ✅ Rota para receber leads e mensagens
-app.post("/webhook", async (req, res) => {
+app.use(bodyParser.json());
+
+// Endpoint para salvar lead
+app.post("/leads", async (req, res) => {
   try {
-    const { phone, message, email, name } = req.body;
+    const { name, email, phone, message } = req.body;
 
-    console.log("📩 Nova mensagem recebida:", { phone, message, email, name });
-
-    // --- salvar LEAD (se não existir ainda) ---
-    const { data: existingLead } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("phone", phone)
-      .maybeSingle();
-
-    let lead;
-    if (!existingLead) {
-      const { data, error } = await supabase
-        .from("leads")
-        .insert([
-          {
-            phone: phone || "desconhecido",
-            email: email || null,
-            name: name || null,
-            status: "contato"
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error("❌ Erro ao salvar lead:", error);
-        return res.status(500).json({ error: error.message });
-      }
-      lead = data;
-      console.log("✅ Lead criado:", lead);
-    } else {
-      lead = existingLead;
-      console.log("ℹ️ Lead já existente:", lead);
+    // Validação básica
+    if (!name) {
+      return res.status(400).json({ error: "O campo 'name' é obrigatório." });
     }
 
-    // --- salvar MENSAGEM ---
-    const { data: msg, error: msgError } = await supabase
-      .from("messages")
+    const { data, error } = await supabase
+      .from("leads")
       .insert([
         {
-          position: 0,
-          company: "sf",
-          message: message || "sem mensagem",
-          phone: phone || "desconhecido"
-        }
+          name,
+          email: email || null,
+          phone: phone || null,
+          message: message || null,
+        },
       ])
-      .select()
-      .single();
+      .select();
 
-    if (msgError) {
-      console.error("❌ Erro ao salvar mensagem:", msgError);
-      return res.status(500).json({ error: msgError.message });
+    if (error) {
+      console.error("Erro ao salvar no Supabase:", error);
+      return res.status(500).json({ error: error.message });
     }
 
-    console.log("✅ Mensagem salva:", msg);
-
-    return res.status(200).json({ success: true, lead, msg });
+    res.status(200).json({ success: true, lead: data[0] });
   } catch (err) {
-    console.error("🔥 Erro no servidor:", err);
-    return res.status(500).json({ error: "Erro interno do servidor" });
+    console.error("Erro inesperado:", err);
+    res.status(500).json({ error: "Erro interno do servidor." });
   }
 });
 
-// 🚀 Inicia o servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server rodando na porta ${PORT}`);
+// Rota simples para testar servidor
+app.get("/", (req, res) => {
+  res.send("🚀 API de Leads rodando com sucesso!");
+});
+
+// Inicia o servidor
+app.listen(port, () => {
+  console.log(`✅ Servidor rodando na porta ${port}`);
 });
