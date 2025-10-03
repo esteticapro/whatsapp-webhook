@@ -8,37 +8,51 @@ dotenv.config();
 const app = express();
 app.use(bodyParser.json());
 
+// 🔑 Conexão Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
-// ✅ Rota para salvar lead + mensagem
+// ✅ Rota para receber leads e mensagens
 app.post("/webhook", async (req, res) => {
   try {
-    const { phone, message } = req.body;
+    const { phone, message, email, name } = req.body;
 
-    console.log("📩 Nova mensagem recebida:", phone, message);
+    console.log("📩 Nova mensagem recebida:", { phone, message, email, name });
 
-    // --- salvar LEAD ---
-    const { data: lead, error: leadError } = await supabase
+    // --- salvar LEAD (se não existir ainda) ---
+    const { data: existingLead } = await supabase
       .from("leads")
-      .insert([
-        {
-          user_id: null, // se tiver o user_id, você passa aqui
-          email: "desconhecido", // se conseguir extrair de algum lugar
-          status: "contato"
-        }
-      ])
-      .select()
-      .single();
+      .select("*")
+      .eq("phone", phone)
+      .maybeSingle();
 
-    if (leadError) {
-      console.error("❌ Erro ao salvar lead:", leadError);
-      return res.status(500).json({ error: leadError.message });
+    let lead;
+    if (!existingLead) {
+      const { data, error } = await supabase
+        .from("leads")
+        .insert([
+          {
+            phone: phone || "desconhecido",
+            email: email || null,
+            name: name || null,
+            status: "contato"
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Erro ao salvar lead:", error);
+        return res.status(500).json({ error: error.message });
+      }
+      lead = data;
+      console.log("✅ Lead criado:", lead);
+    } else {
+      lead = existingLead;
+      console.log("ℹ️ Lead já existente:", lead);
     }
-
-    console.log("✅ Lead salvo:", lead);
 
     // --- salvar MENSAGEM ---
     const { data: msg, error: msgError } = await supabase
@@ -68,6 +82,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+// 🚀 Inicia o servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server rodando na porta ${PORT}`);
