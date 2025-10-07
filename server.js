@@ -1,81 +1,72 @@
-import express from "express";
-import qrcode from "qrcode";
-import { Client, LocalAuth } from "whatsapp-web.js";
-import cors from "cors";
+const express = require('express');
+const qrcode = require('qrcode');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-let qrCodeData = null;
-let isConnected = false;
+let qrCodeImage = null;
+let isReady = false;
 
-// Inicializa o cliente WhatsApp
+// Inicializa o cliente do WhatsApp
 const client = new Client({
-  authStrategy: new LocalAuth(), // salva a sessão automaticamente
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
+  authStrategy: new LocalAuth(),
+  puppeteer: { headless: true }
 });
 
-// Quando o QR Code for gerado
-client.on("qr", async (qr) => {
-  console.log("✅ QR Code gerado!");
-  qrCodeData = await qrcode.toDataURL(qr);
+// Evento quando o QR Code é gerado
+client.on('qr', async (qr) => {
+  qrCodeImage = await qrcode.toDataURL(qr);
+  isReady = false;
+  console.log('🟡 QR Code gerado. Aguardando leitura...');
 });
 
-// Quando o WhatsApp conectar com sucesso
-client.on("ready", () => {
-  console.log("✅ WhatsApp conectado com sucesso!");
-  isConnected = true;
-  qrCodeData = null;
+// Evento quando o WhatsApp é autenticado e pronto
+client.on('ready', () => {
+  isReady = true;
+  console.log('✅ WhatsApp conectado com sucesso!');
 });
 
-// Quando desconectar
-client.on("disconnected", (reason) => {
-  console.log("⚠️ WhatsApp desconectado:", reason);
-  isConnected = false;
-  client.initialize();
-});
-
-// Inicializa o WhatsApp
 client.initialize();
 
-// Rota principal (testar se o servidor está online)
-app.get("/", (req, res) => {
-  res.send("Servidor WhatsApp rodando corretamente 🚀");
+// Rota principal
+app.get('/', (req, res) => {
+  if (isReady) {
+    res.send(`
+      <html>
+        <head><title>WhatsApp Conectado ✅</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>✅ WhatsApp conectado com sucesso!</h1>
+          <p>O bot está pronto para uso.</p>
+        </body>
+      </html>
+    `);
+  } else if (qrCodeImage) {
+    res.send(`
+      <html>
+        <head><title>Escaneie o QR Code</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>📱 Escaneie o QR Code abaixo para conectar o WhatsApp:</h1>
+          <img src="${qrCodeImage}" style="width:300px; height:300px;" />
+          <p>Abra o WhatsApp > Dispositivos Conectados > Conectar um novo dispositivo</p>
+        </body>
+      </html>
+    `);
+  } else {
+    res.send(`
+      <html>
+        <head><title>Aguardando QR</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>⏳ Gerando QR Code...</h1>
+          <p>Aguarde alguns segundos e atualize a página.</p>
+        </body>
+      </html>
+    `);
+  }
 });
 
-// Rota para obter o QR Code
-app.get("/qrcode", async (req, res) => {
-  if (isConnected) {
-    return res.json({ status: "connected" });
-  }
-
-  if (qrCodeData) {
-    return res.json({ status: "qrcode", data: qrCodeData });
-  }
-
-  return res.json({ status: "loading" });
-});
-
-// Rota para enviar mensagem
-app.post("/send", async (req, res) => {
-  const { number, message } = req.body;
-
-  if (!number || !message) {
-    return res.status(400).json({ error: "Número e mensagem são obrigatórios." });
-  }
-
-  try {
-    const chatId = number.includes("@c.us") ? number : `${number}@c.us`;
-    await client.sendMessage(chatId, message);
-    res.json({ success: true, message: "Mensagem enviada com sucesso!" });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Porta dinâmica para o Render
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`✅ Servidor rodando na porta ${PORT}`));
+// Inicializa servidor web
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
