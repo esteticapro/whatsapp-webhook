@@ -1,19 +1,15 @@
 {
-  "name": "whatsapp-qrcode-server",
+  "name": "whatsapp-webhook",
   "version": "1.0.0",
-  "description": "Servidor WhatsApp com QR Code",
   "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
+    "express": "^4.19.2",
+    "whatsapp-web.js": "^1.26.0",
     "qrcode": "^1.5.3",
-    "socket.io": "^4.7.2",
-    "whatsapp-web.js": "^1.25.0"
-  },
-  "engines": {
-    "node": ">=18"
+    "cors": "^2.8.5"
   }
 }
