@@ -1,50 +1,37 @@
-const express = require("express");
-const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
-const http = require("http");
-const { Server } = require("socket.io");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
+dotenv.config();
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
+const port = process.env.PORT || 3000;
 
-const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
-});
+// Configurações
+app.use(cors());
+app.use(express.json());
 
-client.on("qr", (qr) => {
-  console.log("QR RECEBIDO", qr);
-  qrcode.generate(qr, { small: true });
-  io.emit("qr", qr);
-});
+// Conexão com Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-client.on("ready", () => {
-  console.log("✅ Cliente WhatsApp conectado!");
-  io.emit("ready");
-});
-
-client.on("authenticated", () => {
-  console.log("🔒 Autenticado com sucesso!");
-});
-
-client.on("auth_failure", () => {
-  console.log("❌ Falha na autenticação, tente novamente.");
-});
-
+// Rota simples para teste
 app.get("/", (req, res) => {
-  res.send("Servidor WhatsApp rodando com sucesso 🚀");
+  res.send("🚀 Servidor online e conectado!");
 });
 
-client.initialize();
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+// Rota para buscar clientes
+app.get("/clientes", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("clientes").select("*").order("id", { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("Erro ao buscar clientes:", err.message);
+    res.status(500).json({ error: "Erro ao buscar clientes" });
+  }
 });
+
+// Inicializa o servidor
+app.listen(port, () => console.log(`✅ Servidor rodando na porta ${port}`));
