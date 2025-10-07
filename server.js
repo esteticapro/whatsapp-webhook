@@ -1,97 +1,90 @@
-import express from 'express';
-import http from 'http';
-import { Server } from 'socket.io';
-import cors from 'cors';
-import qrcode from 'qrcode';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import express from "express";
+import { Client, LocalAuth } from "whatsapp-web.js";
+import qrcode from "qrcode";
+import cors from "cors";
+import bodyParser from "body-parser";
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Para desenvolvimento. Em produção, restrinja ao seu domínio.
-    methods: ["GET", "POST"]
-  }
-});
+const PORT = process.env.PORT || 10000;
 
 app.use(cors());
+app.use(bodyParser.json());
 
+let qrCodeData = null;
+let isConnected = false;
+
+// Inicializa o cliente do WhatsApp
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process', // <- Isso pode ajudar em ambientes com poucos recursos
-      '--disable-gpu'
-    ],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   },
 });
 
-let qrCodeData = null;
-
-app.get('/', (req, res) => {
-  res.send('Servidor WhatsApp está rodando!');
+// Evento: Gera QR Code
+client.on("qr", async (qr) => {
+  console.log("🔹 QR Code recebido. Escaneie para conectar.");
+  qrCodeData = await qrcode.toDataURL(qr); // converte para imagem base64
 });
 
-app.get('/qr', (req, res) => {
-  if (qrCodeData) {
-    res.json({ qr: qrCodeData });
-  } else {
-    res.status(404).json({ error: 'QR Code não gerado ou WhatsApp já conectado.' });
-  }
+// Evento: Cliente pronto
+client.on("ready", () => {
+  console.log("✅ WhatsApp conectado!");
+  isConnected = true;
+  qrCodeData = null;
 });
 
-client.on('qr', async (qr) => {
-  console.log('QR Code gerado! Aguardando leitura...');
-  try {
-    qrCodeData = await qrcode.toDataURL(qr);
-    io.emit('message', 'QR Code gerado! Escaneie com seu celular.');
-  } catch (err) {
-    console.error('Falha ao gerar QR Code:', err);
-  }
+// Evento: Mensagem recebida (opcional)
+client.on("message", (msg) => {
+  console.log(`📩 Mensagem de ${msg.from}: ${msg.body}`);
 });
 
-client.on('ready', () => {
-  console.log('✅ WhatsApp conectado!');
-  qrCodeData = null; // Limpa o QR Code após conectar
-  io.emit('whatsapp-connected');
-});
-
-client.on('auth_failure', msg => {
-  console.error('Falha na autenticação!', msg);
-  io.emit('message', 'Falha na autenticação. Tente novamente.');
-});
-
-client.on('disconnected', (reason) => {
-  console.log('WhatsApp foi desconectado!', reason);
-  io.emit('whatsapp-disconnected');
-  client.initialize(); // Tenta reinicializar para gerar um novo QR Code
-});
-
-io.on('connection', (socket) => {
-  console.log('Frontend conectado via Socket.IO');
-  
-  // Se já estiver conectado, avisa o frontend
-  client.getState().then(state => {
-    if (state === 'CONNECTED') {
-      socket.emit('whatsapp-connected');
-    }
-  });
-
-  socket.on('logout', () => {
-    client.logout().then(() => {
-        console.log('Logout realizado.');
-    });
-  });
-});
-
+// Inicializa o cliente
 client.initialize();
 
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+// Endpoint principal
+app.get("/", (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Conectar WhatsApp</title>
+        <style>
+          body {
+            background: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial;
+          }
+          img {
+            margin-top: 20px;
+            width: 300px;
+            height: 300px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>WhatsApp Webhook</h1>
+        ${
+          isConnected
+            ? "<h2>✅ Conectado com sucesso!</h2>"
+            : qrCodeData
+            ? `<h3>Escaneie o QR Code abaixo:</h3><img src='${qrCodeData}' />`
+            : "<h3>Aguardando geração do QR Code...</h3>"
+        }
+      </body>
+    </html>
+  `);
+});
+
+// Endpoint para checar status (útil para o sistema)
+app.get("/status", (req, res) => {
+  res.json({ connected: isConnected });
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Servidor rodando na porta ${PORT}`);
+});
