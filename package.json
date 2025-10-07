@@ -1,16 +1,19 @@
 {
-  "name": "whatsapp-web-server",
+  "name": "meu-backend",
   "version": "1.0.0",
-  "description": "Servidor backend para conectar WhatsApp Web com frontend via Socket.IO",
+  "description": "Servidor backend conectado ao Supabase para exibir clientes no site.",
+  "type": "module",
   "main": "server.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "qrcode-terminal": "^0.12.0",
-    "socket.io": "^4.7.2",
-    "whatsapp-web.js": "^1.25.0"
+    "express": "^4.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.43.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
