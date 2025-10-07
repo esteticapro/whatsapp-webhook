@@ -1,50 +1,63 @@
 const express = require("express");
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode");
+const qrcodeTerminal = require("qrcode-terminal");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
-});
+let client;
 
-let qrCodeData = null;
+function initializeWhatsApp() {
+  client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process",
+        "--disable-gpu",
+      ],
+    },
+  });
 
-// Evento quando o QR Code é gerado
-client.on("qr", async (qr) => {
-  console.log("QR Code gerado!");
-  qrCodeData = await qrcode.toDataURL(qr);
-});
+  // 🔹 Mostra QR Code no log do Render
+  client.on("qr", (qr) => {
+    console.clear();
+    console.log("📱 Escaneie este QR Code para conectar o WhatsApp:\n");
+    qrcodeTerminal.generate(qr, { small: true });
+  });
 
-// Quando o WhatsApp conecta
-client.on("ready", () => {
-  console.log("✅ WhatsApp conectado!");
-  qrCodeData = null;
-});
+  // 🔹 Quando conectar
+  client.on("ready", () => {
+    console.log("✅ WhatsApp conectado com sucesso!");
+  });
 
-// Inicializa o cliente
-client.initialize();
+  // 🔹 Quando desconectar
+  client.on("disconnected", (reason) => {
+    console.log("⚠️ WhatsApp desconectado:", reason);
+    console.log("🔄 Tentando reconectar...");
+    client.destroy();
+    setTimeout(initializeWhatsApp, 5000); // tenta reconectar automaticamente
+  });
 
-// Endpoint para pegar o QR Code
-app.get("/qr", (req, res) => {
-  if (qrCodeData) {
-    res.json({ qr: qrCodeData });
-  } else {
-    res.json({ message: "WhatsApp já conectado ou aguardando QR Code" });
-  }
-});
+  client.initialize();
+}
 
-// Endpoint raiz
+// Inicia o cliente
+initializeWhatsApp();
+
+// 🔹 Endpoint básico só pra Render não dormir
 app.get("/", (req, res) => {
-  res.send("Servidor WhatsApp está ativo 🚀");
+  res.send("Servidor WhatsApp ativo 🚀");
 });
 
-// Porta dinâmica do Render
+// 🔹 Porta Render
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🌐 Servidor rodando na porta ${PORT}`));
