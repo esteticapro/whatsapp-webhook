@@ -1,80 +1,50 @@
-// =======================
-// 🔗 Dependências
-// =======================
-import express from "express";
-import { Client, LocalAuth } from "whatsapp-web.js";
-import qrcode from "qrcode";
-import { Server } from "socket.io";
-import http from "http";
-import cors from "cors";
+const express = require("express");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode-terminal");
+const http = require("http");
+const { Server } = require("socket.io");
 
-// =======================
-// ⚙️ Configurações básicas
-// =======================
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: "*",
+  },
 });
-app.use(cors());
-app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-
-// =======================
-// 🤖 Inicialização do cliente WhatsApp
-// =======================
 const client = new Client({
-  authStrategy: new LocalAuth({
-    dataPath: "./session",
-  }),
+  authStrategy: new LocalAuth(),
   puppeteer: {
-    headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   },
 });
 
-let qrCodeGenerated = null;
-let isReady = false;
-
-// =======================
-// 🎯 Eventos do WhatsApp
-// =======================
-client.on("qr", async (qr) => {
-  console.log("🔹 Novo QR Code gerado");
-  qrCodeGenerated = await qrcode.toDataURL(qr);
-  io.emit("qr", qrCodeGenerated);
-  io.emit("message", "Escaneie o QR Code com seu celular 📱");
-});
-
-client.on("authenticated", () => {
-  console.log("✅ Sessão autenticada com sucesso");
-  io.emit("authenticated", "Sessão autenticada com sucesso ✅");
+client.on("qr", (qr) => {
+  console.log("QR RECEBIDO", qr);
+  qrcode.generate(qr, { small: true });
+  io.emit("qr", qr);
 });
 
 client.on("ready", () => {
-  console.log("🚀 Cliente WhatsApp está pronto!");
-  isReady = true;
-  io.emit("ready", "✅ WhatsApp conectado com sucesso!");
+  console.log("✅ Cliente WhatsApp conectado!");
+  io.emit("ready");
 });
 
-client.on("disconnected", () => {
-  console.log("⚠️ Cliente desconectado, reiniciando...");
-  io.emit("message", "Cliente desconectado, reiniciando...");
-  client.initialize();
+client.on("authenticated", () => {
+  console.log("🔒 Autenticado com sucesso!");
 });
 
-// =======================
-// 🌐 Rotas HTTP simples
-// =======================
+client.on("auth_failure", () => {
+  console.log("❌ Falha na autenticação, tente novamente.");
+});
+
 app.get("/", (req, res) => {
-  res.send("Servidor WhatsApp rodando ✅");
+  res.send("Servidor WhatsApp rodando com sucesso 🚀");
 });
 
-// =======================
-// 🔥 Iniciar cliente e servidor
-// =======================
+client.initialize();
+
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  client.initialize();
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
