@@ -1,15 +1,10 @@
-# 🚀 WhatsApp Web Server
+# 📱 WhatsApp Webhook - Correto
 
-Servidor Node.js que se conecta ao WhatsApp Web via `whatsapp-web.js`
-e envia informações para um painel/frontend usando **Socket.IO**.
+Este projeto cria uma integração entre o WhatsApp Web e uma API Node.js que envia e recebe mensagens automaticamente.  
+A aplicação usa **Puppeteer**, **qrcode-terminal**, **express** e **whatsapp-web.js**.
 
-### 🧠 Tecnologias
-- Node.js
-- Express
-- Socket.IO
-- whatsapp-web.js
+---
 
-### ⚙️ Comandos
-```bash
-npm install
-npm start
+## 🚀 Deploy no Render
+
+### 1️⃣ Estrutura esperada de pastas
