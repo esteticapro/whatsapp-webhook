@@ -1,72 +1,50 @@
-const express = require('express');
-const qrcode = require('qrcode');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const cors = require('cors');
+const express = require("express");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-let qrCodeImage = null;
-let isReady = false;
-
-// Inicializa o cliente do WhatsApp
 const client = new Client({
   authStrategy: new LocalAuth(),
-  puppeteer: { headless: true }
+  puppeteer: {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  },
 });
+
+let qrCodeData = null;
 
 // Evento quando o QR Code é gerado
-client.on('qr', async (qr) => {
-  qrCodeImage = await qrcode.toDataURL(qr);
-  isReady = false;
-  console.log('🟡 QR Code gerado. Aguardando leitura...');
+client.on("qr", async (qr) => {
+  console.log("QR Code gerado!");
+  qrCodeData = await qrcode.toDataURL(qr);
 });
 
-// Evento quando o WhatsApp é autenticado e pronto
-client.on('ready', () => {
-  isReady = true;
-  console.log('✅ WhatsApp conectado com sucesso!');
+// Quando o WhatsApp conecta
+client.on("ready", () => {
+  console.log("✅ WhatsApp conectado!");
+  qrCodeData = null;
 });
 
+// Inicializa o cliente
 client.initialize();
 
-// Rota principal
-app.get('/', (req, res) => {
-  if (isReady) {
-    res.send(`
-      <html>
-        <head><title>WhatsApp Conectado ✅</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>✅ WhatsApp conectado com sucesso!</h1>
-          <p>O bot está pronto para uso.</p>
-        </body>
-      </html>
-    `);
-  } else if (qrCodeImage) {
-    res.send(`
-      <html>
-        <head><title>Escaneie o QR Code</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>📱 Escaneie o QR Code abaixo para conectar o WhatsApp:</h1>
-          <img src="${qrCodeImage}" style="width:300px; height:300px;" />
-          <p>Abra o WhatsApp > Dispositivos Conectados > Conectar um novo dispositivo</p>
-        </body>
-      </html>
-    `);
+// Endpoint para pegar o QR Code
+app.get("/qr", (req, res) => {
+  if (qrCodeData) {
+    res.json({ qr: qrCodeData });
   } else {
-    res.send(`
-      <html>
-        <head><title>Aguardando QR</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>⏳ Gerando QR Code...</h1>
-          <p>Aguarde alguns segundos e atualize a página.</p>
-        </body>
-      </html>
-    `);
+    res.json({ message: "WhatsApp já conectado ou aguardando QR Code" });
   }
 });
 
-// Inicializa servidor web
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+// Endpoint raiz
+app.get("/", (req, res) => {
+  res.send("Servidor WhatsApp está ativo 🚀");
+});
+
+// Porta dinâmica do Render
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
