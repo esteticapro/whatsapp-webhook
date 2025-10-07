@@ -3,7 +3,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import qrcode from 'qrcode';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth } = pkg;
 
 const app = express();
 const server = http.createServer(app);
