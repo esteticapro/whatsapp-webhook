@@ -1,7 +1,6 @@
 {
   "name": "whatsapp-web-server",
   "version": "1.0.0",
-  "description": "Servidor WhatsApp Web rodando no Render",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -9,9 +8,8 @@
     "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "whatsapp-web.js": "^1.25.0",
-    "qrcode": "^1.5.3",
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.24.0",
     "cors": "^2.8.5"
   }
 }
