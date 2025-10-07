@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Webhook</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+    }
+    h1 { color: #333; }
+    img { width: 250px; height: 250px; margin-top: 20px; }
+    .status { margin-top: 15px; font-weight: bold; color: #007bff; }
+  </style>
+</head>
+<body>
+  <h1>Conectar WhatsApp</h1>
+  <div class="status" id="status">Aguardando QR Code...</div>
+  <div id="qrcode"></div>
+
+  <script>
+    const socket = io();
+
+    socket.on("qr", (qr) => {
+      document.getElementById("status").innerText = "Escaneie o QR Code abaixo:";
+      document.getElementById("qrcode").innerHTML = `<img src="${qr}" />`;
+    });
+
+    socket.on("ready", () => {
+      document.getElementById("status").innerText = "✅ WhatsApp conectado com sucesso!";
+      document.getElementById("qrcode").innerHTML = "";
+    });
+
+    socket.on("authenticated", () => {
+      document.getElementById("status").innerText = "🔐 Autenticado!";
+    });
+
+    socket.on("disconnected", (reason) => {
+      document.getElementById("status").innerText = "⚠️ Desconectado: " + reason;
+    });
+  </script>
+</body>
+</html>
