@@ -1,64 +1,69 @@
 import express from "express";
-import http from "http";
-import { Server } from "socket.io";
+import { Client, LocalAuth } from "whatsapp-web.js";
 import qrcode from "qrcode";
-import pkg from "whatsapp-web.js";
-const { Client, LocalAuth } = pkg;
+import fs from "fs";
+import path from "path";
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const port = process.env.PORT || 10000;
 
 app.use(express.static("public"));
-app.use(express.json());
 
-// Instância do cliente WhatsApp
+let qrCodeData = null;
+
 const client = new Client({
   authStrategy: new LocalAuth({
-  dataPath: "./.wwebjs_auth" // Agora salva dentro do projeto
+    dataPath: "./.wwebjs_auth", // salva sessão local
   }),
   puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu",
+    ],
   },
 });
 
-// Eventos do WhatsApp
 client.on("qr", async (qr) => {
-  const qrCodeImageUrl = await qrcode.toDataURL(qr);
-  io.emit("qr", qrCodeImageUrl);
-  console.log("✅ QR Code gerado. Escaneie para conectar.");
+  console.log("📱 Novo QR code gerado!");
+  qrCodeData = await qrcode.toDataURL(qr);
 });
 
 client.on("ready", () => {
-  console.log("✅ WhatsApp conectado e pronto!");
-  io.emit("ready");
+  console.log("✅ WhatsApp conectado com sucesso!");
+  qrCodeData = null; // remove o QR quando conectado
 });
 
 client.on("authenticated", () => {
-  console.log("🔐 Sessão autenticada com sucesso!");
-  io.emit("authenticated");
+  console.log("🔐 Sessão autenticada!");
 });
 
 client.on("auth_failure", (msg) => {
   console.error("❌ Falha na autenticação:", msg);
-  io.emit("auth_failure", msg);
+  qrCodeData = null;
 });
 
-client.on("disconnected", () => {
-  console.log("⚠️ WhatsApp desconectado. Tentando reconectar...");
-  client.initialize();
+client.on("disconnected", (reason) => {
+  console.log("⚠️ Desconectado:", reason);
+  client.initialize(); // tenta reconectar automaticamente
 });
 
-// Inicializar o cliente
 client.initialize();
 
-// Rota principal (frontend)
-app.get("/", (req, res) => {
-  res.sendFile("index.html", { root: "public" });
+app.get("/qr", (req, res) => {
+  if (qrCodeData) {
+    res.send(`<img src="${qrCodeData}" alt="QR Code" style="width:300px;height:300px;" />`);
+  } else {
+    res.send("<h3>✅ WhatsApp conectado! Nenhum QR disponível.</h3>");
+  }
 });
 
-// Inicializar servidor
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+app.listen(port, () => {
+  console.log(`🚀 Servidor rodando na porta ${port}`);
 });
