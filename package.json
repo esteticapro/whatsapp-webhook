@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-webhook",
   "version": "1.0.0",
-  "description": "Servidor para conexão do WhatsApp com QR code e webhook",
+  "description": "Integração WhatsApp Web.js com Render e Hostinger Horizon",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "socket.io": "^4.7.5",
+    "http": "^0.0.1-security",
     "qrcode": "^1.5.3",
-    "whatsapp-web.js": "^1.26.0",
-    "node-fetch": "^3.3.2"
+    "socket.io": "^4.7.5",
+    "whatsapp-web.js": "^1.23.0"
   }
 }
