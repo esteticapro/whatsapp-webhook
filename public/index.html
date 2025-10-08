@@ -2,42 +2,57 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Meu WhatsApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conecte seu WhatsApp</title>
     <style>
       body {
+        background-color: #e8fff4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
         font-family: Arial, sans-serif;
-        background: #e9fef1;
+      }
+      .card {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         text-align: center;
-        padding: 50px;
       }
-      h1 {
-        color: #128c7e;
-      }
-      #qr {
+      img {
+        width: 250px;
         margin-top: 20px;
+      }
+      #status {
+        margin-top: 20px;
+        color: #555;
       }
     </style>
   </head>
   <body>
-    <h1>Conecte seu WhatsApp</h1>
-    <div id="qr">
-      <p>Carregando QR Code...</p>
+    <div class="card">
+      <h2>Conecte seu WhatsApp</h2>
+      <p>Abra o WhatsApp e escaneie o código abaixo:</p>
+      <div id="qrcode">
+        <p>Gerando QR Code...</p>
+      </div>
+      <p id="status">Aguardando conexão...</p>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-      async function carregarQR() {
-        try {
-          const res = await fetch("/qr");
-          const html = await res.text();
-          document.getElementById("qr").innerHTML = html;
-        } catch {
-          document.getElementById("qr").innerHTML =
-            "<p>❌ Erro ao carregar o QR Code.</p>";
-        }
-      }
+      const socket = io();
 
-      carregarQR();
-      setInterval(carregarQR, 5000);
+      socket.on("qr", (src) => {
+        document.getElementById("qrcode").innerHTML = `<img src="${src}" />`;
+        document.getElementById("status").innerText = "Escaneie o QR Code!";
+      });
+
+      socket.on("ready", (msg) => {
+        document.getElementById("qrcode").innerHTML = `<p>✅ ${msg}</p>`;
+        document.getElementById("status").innerText = "WhatsApp conectado!";
+      });
     </script>
   </body>
 </html>
