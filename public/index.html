@@ -3,47 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp Webhook</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <title>Conecte seu WhatsApp</title>
   <style>
     body {
+      font-family: Arial, sans-serif;
+      background-color: #e6fff3;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      font-family: Arial, sans-serif;
-      background: #f9fafb;
+      text-align: center;
     }
-    h1 { color: #333; }
-    img { width: 250px; height: 250px; margin-top: 20px; }
-    .status { margin-top: 15px; font-weight: bold; color: #007bff; }
+    #qr {
+      width: 260px;
+      height: 260px;
+      margin-top: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+    }
+    .status {
+      margin-top: 20px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
-  <h1>Conectar WhatsApp</h1>
+  <h1>Conecte seu WhatsApp</h1>
+  <p>Abra o WhatsApp no celular e escaneie o código abaixo:</p>
+  <img id="qr" src="" alt="QR Code aparecerá aqui" />
   <div class="status" id="status">Aguardando QR Code...</div>
-  <div id="qrcode"></div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
-    socket.on("qr", (qr) => {
-      document.getElementById("status").innerText = "Escaneie o QR Code abaixo:";
-      document.getElementById("qrcode").innerHTML = `<img src="${qr}" />`;
+    socket.on("qr", (src) => {
+      document.getElementById("qr").src = src;
+      document.getElementById("status").textContent = "Escaneie o QR Code com seu WhatsApp 📱";
     });
 
     socket.on("ready", () => {
-      document.getElementById("status").innerText = "✅ WhatsApp conectado com sucesso!";
-      document.getElementById("qrcode").innerHTML = "";
+      document.getElementById("status").textContent = "✅ WhatsApp conectado com sucesso!";
     });
 
     socket.on("authenticated", () => {
-      document.getElementById("status").innerText = "🔐 Autenticado!";
+      document.getElementById("status").textContent = "🔐 Sessão autenticada. Conectando...";
     });
 
-    socket.on("disconnected", (reason) => {
-      document.getElementById("status").innerText = "⚠️ Desconectado: " + reason;
+    socket.on("auth_failure", (msg) => {
+      document.getElementById("status").textContent = "❌ Falha na autenticação. Recarregue a página.";
     });
   </script>
 </body>
