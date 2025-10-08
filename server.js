@@ -15,7 +15,7 @@ app.use(express.json());
 // Instância do cliente WhatsApp
 const client = new Client({
   authStrategy: new LocalAuth({
-    dataPath: "/data/.wwebjs_auth" // Pasta persistente do Render
+  dataPath: "./.wwebjs_auth" // Agora salva dentro do projeto
   }),
   puppeteer: {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
